@@ -130,87 +130,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { once: true });
     
-// Función principal - ACTUALIZADA para que sonido y cartas ocurran simultáneamente
-function getRandomCards() {
-    console.log("Botón Try clickeado - Iniciando proceso");
-    
-    // Prevenir múltiples clics durante la animación
-    if (animationInProgress) {
-        console.log("Animación en progreso, ignorando clic");
-        return;
-    }
-    
-    animationInProgress = true;
-    
-    // Deshabilitar botones inmediatamente
-    tryBtn.disabled = true;
-    solveBtn.disabled = true;
-    
-    // PASO 1: BORRAR LAS IMÁGENES ACTUALES
-    console.log("Paso 1: Limpiando imágenes anteriores");
-    card1.innerHTML = '';
-    card2.innerHTML = '';
-    card1Name.textContent = '';
-    card2Name.textContent = '';
-    
-    // PASO 2: Mostrar inmediatamente la imagen predeterminada
-    console.log("Paso 2: Mostrando imagen predeterminada");
-    card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
-    card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
-    
-    // PASO 3: Obtener cartas aleatorias SIMULTÁNEAMENTE con el sonido
-    console.log("Paso 3: Iniciando petición de cartas y reproduciendo sonido simultáneamente");
-    
-    // Hacer la petición de cartas
-    const cardsPromise = fetch('/get_random_cards', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
+    // Función principal
+    function getRandomCards() {
+        console.log("Botón Try clickeado - Iniciando proceso");
+        
+        // Prevenir múltiples clics durante la animación
+        if (animationInProgress) {
+            console.log("Animación en progreso, ignorando clic");
+            return;
         }
-    });
-    
-    // Reproducir sonido SIMULTÁNEAMENTE
-    playSound(flipSound, 0.6); // No usamos callback para que sea simultáneo
-    
-    // Esperar a que lleguen las cartas
-    cardsPromise
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Error en la red: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
+        
+        animationInProgress = true;
+        
+        // Deshabilitar botones inmediatamente
+        tryBtn.disabled = true;
+        solveBtn.disabled = true;
+        
+        // PASO 1: BORRAR LAS IMÁGENES ACTUALES
+        console.log("Paso 1: Limpiando imágenes anteriores");
+        card1.innerHTML = '';
+        card2.innerHTML = '';
+        card1Name.textContent = '';
+        card2Name.textContent = '';
+        
+        // PASO 2: Mostrar inmediatamente la imagen predeterminada
+        console.log("Paso 2: Mostrando imagen predeterminada");
+        card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
+        card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
+        
+        // PASO 3: Reproducir el sonido
+        console.log("Paso 3: Reproduciendo sonido");
+        playSound(chimeSound, 0.6, () => {
+            console.log("Sonido terminado, obteniendo cartas...");
             
-            // Guardar cartas actuales
-            currentCards = {
-                card1: data.card1,
-                card2: data.card2
-            };
-            
-            // Mostrar cartas SIMULTÁNEAMENTE
-            displayCards(data.card1, data.card2);
-            
-            // Habilitar botón de interpretación
-            solveBtn.disabled = false;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            interpretationContent.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-            
-            // Restaurar imagen predeterminada
-            card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
-            card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
-        })
-        .finally(() => {
-            // Habilitar botón Try
-            tryBtn.disabled = false;
-            animationInProgress = false;
+            // PASO 4: Obtener cartas aleatorias
+            fetch('/get_random_cards', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error en la red: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Guardar cartas actuales
+                currentCards = {
+                    card1: data.card1,
+                    card2: data.card2
+                };
+                
+                // Mostrar cartas
+                displayCards(data.card1, data.card2);
+                
+                // Habilitar botón de interpretación
+                solveBtn.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                interpretationContent.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                
+                // Restaurar imagen predeterminada
+                card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
+                card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
+            })
+            .finally(() => {
+                // Habilitar botón Try
+                tryBtn.disabled = false;
+                animationInProgress = false;
+            });
         });
-}
+    }
     
     function displayCards(card1Data, card2Data) {
         console.log("Mostrando cartas:", card1Data, card2Data);
