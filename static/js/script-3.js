@@ -8,15 +8,6 @@ let tryBtn, solveBtn, card1, card2, card1Name, card2Name;
 let interpretationContent, loading;
 let animationInProgress = false;
 
-// Paleta de colores por tarotista
-const styleColors = {
-    'professor': '#3a506b',      // Azul académico
-    'coaching': '#34495e',       // Gris azulado profesional
-    'nigromante': '#1a1a2e',     // Negro profundo con toque azul
-    'gitano': '#2d1b69',         // Púrpura místico
-    'místico': '#1d2d44'         // Azul profundo místico
-};
-
 // Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     console.log("=== Inicio de la aplicación Tarot ===");
@@ -134,9 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedStyle = option.dataset.style;
             settingsMenu.style.display = 'none';
             document.getElementById('style-label').textContent = `Estilo: ${option.textContent}`;
-            
-            // Cambiar el color de fondo según el estilo seleccionado
-            changeBackgroundColor(selectedStyle);
         });
     });
     
@@ -167,19 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         }, 100);
-    }
-    
-    function changeBackgroundColor(style) {
-        const color = styleColors[style] || styleColors['coaching'];
-        document.body.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
-        
-        // Opcional: También puedes cambiar el color de otros elementos
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
-        }
-        
-        console.log(`Color de fondo cambiado a: ${color} para el estilo: ${style}`);
     }
     
     // Función principal - ACTUALIZADA para que sonido y cartas ocurran simultáneamente
@@ -396,9 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentQuestion = '';
         solveBtn.disabled = true;
         animationInProgress = false;
-        
-        // Volver al color de fondo por defecto
-        changeBackgroundColor('coaching');
     }
     
     function toggleSettingsMenu() {

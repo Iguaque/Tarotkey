@@ -8,15 +8,6 @@ let tryBtn, solveBtn, card1, card2, card1Name, card2Name;
 let interpretationContent, loading;
 let animationInProgress = false;
 
-// Paleta de colores por tarotista
-const styleColors = {
-    'professor': '#3a506b',      // Azul académico
-    'coaching': '#34495e',       // Gris azulado profesional
-    'nigromante': '#1a1a2e',     // Negro profundo con toque azul
-    'gitano': '#2d1b69',         // Púrpura místico
-    'místico': '#1d2d44'         // Azul profundo místico
-};
-
 // Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     console.log("=== Inicio de la aplicación Tarot ===");
@@ -107,14 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
         questionInput.value = currentQuestion;
     });
     
-    // Agregar evento para la tecla Enter en el input de pregunta
-    questionInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault(); // Prevenir el comportamiento por defecto
-            submitQuestionHandler();
-        }
-    });
-    
     // Cerrar menús al hacer clic fuera
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.settings-menu') && !e.target.matches('#settings-btn')) {
@@ -134,142 +117,100 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedStyle = option.dataset.style;
             settingsMenu.style.display = 'none';
             document.getElementById('style-label').textContent = `Estilo: ${option.textContent}`;
-            
-            // Cambiar el color de fondo según el estilo seleccionado
-            changeBackgroundColor(selectedStyle);
         });
     });
     
-    // Inicializar sonidos inmediatamente después de la carga del DOM
-    initializeSounds();
-    
-    function initializeSounds() {
-        // Cargar los sonidos inmediatamente
-        if (flipSound) {
-            flipSound.load();
-        }
-        if (chimeSound) {
-            chimeSound.load();
-        }
-        
-        // Intentar pre-reproducir un sonido silencioso para desbloquear la API de audio
-        setTimeout(() => {
-            if (flipSound) {
-                flipSound.volume = 0;
-                flipSound.play().then(() => {
-                    flipSound.pause();
-                    flipSound.currentTime = 0;
-                    soundEnabled = true;
-                    console.log("Sonidos desbloqueados para primera reproducción");
-                }).catch(e => {
-                    console.log("Sonidos aún no desbloqueados, se habilitarán en el primer clic");
-                    // El sonido se habilitará en el primer clic real
-                });
-            }
-        }, 100);
-    }
-    
-    function changeBackgroundColor(style) {
-        const color = styleColors[style] || styleColors['coaching'];
-        document.body.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
-        
-        // Opcional: También puedes cambiar el color de otros elementos
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
-        }
-        
-        console.log(`Color de fondo cambiado a: ${color} para el estilo: ${style}`);
-    }
-    
-    // Función principal - ACTUALIZADA para que sonido y cartas ocurran simultáneamente
-    function getRandomCards() {
-        console.log("Botón Try clickeado - Iniciando proceso");
-        
-        // Asegurarnos que los sonidos estén habilitados
-        if (!soundEnabled && flipSound) {
+    // Inicializar sonidos
+    document.addEventListener('click', function() {
+        if (!soundEnabled) {
             soundEnabled = true;
-            flipSound.load();
-            console.log("Sonidos habilitados en primer clic");
+            if (flipSound) flipSound.load();
+            if (chimeSound) chimeSound.load();
+            console.log("Sonidos habilitados después de interacción del usuario");
         }
-        
-        // Prevenir múltiples clics durante la animación
-        if (animationInProgress) {
-            console.log("Animación en progreso, ignorando clic");
-            return;
-        }
-        
-        animationInProgress = true;
-        
-        // Deshabilitar botones inmediatamente
-        tryBtn.disabled = true;
-        solveBtn.disabled = true;
-        
-        // PASO 1: BORRAR LAS IMÁGENES ACTUALES
-        console.log("Paso 1: Limpiando imágenes anteriores");
-        card1.innerHTML = '';
-        card2.innerHTML = '';
-        card1Name.textContent = '';
-        card2Name.textContent = '';
-        
-        // PASO 2: Mostrar inmediatamente la imagen predeterminada
-        console.log("Paso 2: Mostrando imagen predeterminada");
-        card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
-        card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
-        
-        // PASO 3: Obtener cartas aleatorias SIMULTÁNEAMENTE con el sonido
-        console.log("Paso 3: Iniciando petición de cartas y reproduciendo sonido simultáneamente");
-        
-        // Hacer la petición de cartas
-        const cardsPromise = fetch('/get_random_cards', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        // Reproducir sonido SIMULTÁNEAMENTE
-        playSound(flipSound, 0.6); // No usamos callback para que sea simultáneo
-        
-        // Esperar a que lleguen las cartas
-        cardsPromise
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error en la red: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                // Guardar cartas actuales
-                currentCards = {
-                    card1: data.card1,
-                    card2: data.card2
-                };
-                
-                // Mostrar cartas SIMULTÁNEAMENTE
-                displayCards(data.card1, data.card2);
-                
-                // Habilitar botón de interpretación
-                solveBtn.disabled = false;
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                interpretationContent.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-                
-                // Restaurar imagen predeterminada
-                card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
-                card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
-            })
-            .finally(() => {
-                // Habilitar botón Try
-                tryBtn.disabled = false;
-                animationInProgress = false;
-            });
+    }, { once: true });
+    
+// Función principal - ACTUALIZADA para que sonido y cartas ocurran simultáneamente
+function getRandomCards() {
+    console.log("Botón Try clickeado - Iniciando proceso");
+    
+    // Prevenir múltiples clics durante la animación
+    if (animationInProgress) {
+        console.log("Animación en progreso, ignorando clic");
+        return;
     }
+    
+    animationInProgress = true;
+    
+    // Deshabilitar botones inmediatamente
+    tryBtn.disabled = true;
+    solveBtn.disabled = true;
+    
+    // PASO 1: BORRAR LAS IMÁGENES ACTUALES
+    console.log("Paso 1: Limpiando imágenes anteriores");
+    card1.innerHTML = '';
+    card2.innerHTML = '';
+    card1Name.textContent = '';
+    card2Name.textContent = '';
+    
+    // PASO 2: Mostrar inmediatamente la imagen predeterminada
+    console.log("Paso 2: Mostrando imagen predeterminada");
+    card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
+    card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
+    
+    // PASO 3: Obtener cartas aleatorias SIMULTÁNEAMENTE con el sonido
+    console.log("Paso 3: Iniciando petición de cartas y reproduciendo sonido simultáneamente");
+    
+    // Hacer la petición de cartas
+    const cardsPromise = fetch('/get_random_cards', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+    
+    // Reproducir sonido SIMULTÁNEAMENTE
+    playSound(flipSound, 0.6); // No usamos callback para que sea simultáneo
+    
+    // Esperar a que lleguen las cartas
+    cardsPromise
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error en la red: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Guardar cartas actuales
+            currentCards = {
+                card1: data.card1,
+                card2: data.card2
+            };
+            
+            // Mostrar cartas SIMULTÁNEAMENTE
+            displayCards(data.card1, data.card2);
+            
+            // Habilitar botón de interpretación
+            solveBtn.disabled = false;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            interpretationContent.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            
+            // Restaurar imagen predeterminada
+            card1.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 1" class="default-card">`;
+            card2.innerHTML = `<img src="${FLASK_VARS.staticUrl}/images/${FLASK_VARS.defaultImage}" alt="Carta 2" class="default-card">`;
+        })
+        .finally(() => {
+            // Habilitar botón Try
+            tryBtn.disabled = false;
+            animationInProgress = false;
+        });
+}
     
     function displayCards(card1Data, card2Data) {
         console.log("Mostrando cartas:", card1Data, card2Data);
@@ -316,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Reproducir sonido
-        playSound(chimeSound, 0.4, () => {
+        playSound(flipSound, 0.4, () => {
             console.log("Sonido reproducido, mostrando animación de carga");
             
             // Mostrar animación de carga
@@ -396,9 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentQuestion = '';
         solveBtn.disabled = true;
         animationInProgress = false;
-        
-        // Volver al color de fondo por defecto
-        changeBackgroundColor('coaching');
     }
     
     function toggleSettingsMenu() {
@@ -426,16 +364,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function playSound(soundElement, volume = 1.0, onSuccess = () => {}) {
-        if (!soundElement) {
-            console.log("Sonido no disponible");
+        if (!soundElement || !soundEnabled) {
+            console.log("Sonido no disponible o no habilitado");
             onSuccess();
             return;
         }
         
         try {
-            // Asegurarnos que el sonido esté habilitado
-            soundEnabled = true;
-            
             // Configurar el sonido
             soundElement.volume = volume;
             soundElement.currentTime = 0;
