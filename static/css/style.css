@@ -1,0 +1,325 @@
+:root {
+    --space-dark: #0a0a1a;
+    --space-purple: #4a235a;
+    --gold: #f9e79f;
+    --parchment: #f5f0e1;
+    --ink: #5a2a0a;
+    --card-normal: white;
+    --card-reversed: #e74c3c;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Merriweather', serif;
+    background-color: var(--space-dark);
+    color: var(--gold);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    flex: 1;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--space-purple);
+}
+
+header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: var(--gold);
+    text-shadow: 0 0 10px rgba(249, 231, 159, 0.3);
+}
+
+.cards-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.card-frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+}
+
+.card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    min-height: 24px;
+    text-align: center;
+    width: 100%;
+    font-weight: bold;
+}
+
+.card-placeholder {
+    width: 300px;
+    height: 400px;
+    background-color: #1a1a2e;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid var(--space-purple);
+    transition: transform 0.3s ease;
+}
+
+.card-placeholder:hover {
+    transform: scale(1.03);
+}
+
+.card-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.5s ease;
+}
+
+.card-placeholder img.reversed {
+    transform: rotate(180deg);
+}
+
+.default-card {
+    opacity: 0.7;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.btn {
+    background-color: var(--space-purple);
+    color: var(--gold);
+    border: none;
+    padding: 10px 20px;
+    font-family: 'Merriweather', serif;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+    background-color: #6c3483;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:disabled {
+    background-color: #444;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+#style-label {
+    font-size: 0.8rem;
+    color: var(--gold);
+    opacity: 0.8;
+}
+
+.interpretation-area {
+    background-color: var(--parchment);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid #8b4513;
+    margin-top: 20px;
+}
+
+.interpretation-header {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.interpretation-content {
+    color: var(--ink);
+    font-size: 1.1rem;
+    line-height: 1.8;
+    min-height: 200px;
+}
+
+.interpretation-content p {
+    margin-bottom: 15px;
+}
+
+.question-display {
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #8b4513;
+}
+
+.interpretation-text {
+    color: #2c3e50;
+}
+
+.timestamp {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-align: right;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.question-area {
+    background-color: var(--space-dark);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#question-input {
+    width: 100%;
+    height: 100px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--space-purple);
+    background-color: #1a1a2e;
+    color: var(--gold);
+    font-family: 'Merriweather', serif;
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.question-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.settings-menu {
+    position: absolute;
+    background-color: var(--space-dark);
+    border: 1px solid var(--space-purple);
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    display: none;
+    min-width: 150px;
+    margin-top: 5px;
+}
+
+.settings-option {
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.settings-option:hover {
+    background-color: var(--space-purple);
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    color: var(--ink);
+    margin-bottom: 10px;
+}
+
+
+/* Animación de luna como en la aplicación Tkinter */
+.loading-lunar {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    text-align: center;
+}
+
+.loading-dots span {
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+    margin: 0 2px;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+footer {
+    text-align: center;
+    margin-top: auto;
+    padding: 20px 0;
+    color: var(--gold);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--space-purple);
+    width: 100%;
+}
+
+.error {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.error-details {
+    color: #c0392b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    background: #2c394b;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
