@@ -17,170 +17,259 @@ const styleColors = {
     'místico': '#1d2d44'         // Azul profundo místico
 };
 
+// Mensaje de inicio
+console.log("=== Inicio de la aplicación Tarot - Script Cargado ===");
+
 // Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("=== Inicio de la aplicación Tarot ===");
+    console.log("=== DOM Content Loaded - Iniciando ===");
     
     // Verificar que FLASK_VARS está definido
     if (typeof FLASK_VARS === 'undefined') {
-        console.error("ERROR CRÍTICO: FLASK_VARS no está definido. Verifica que esté en el HTML antes de cargar este script.");
-        document.body.innerHTML = `
-            <div style="color: red; padding: 20px; background: #2c394b; border-radius: 10px; max-width: 800px; margin: 50px auto;">
-                <h1>❌ Error Crítico</h1>
-                <p>Las variables de Flask no están definidas. Esto suele ocurrir cuando:</p>
-                <ul>
-                    <li>El script se carga antes de definir FLASK_VARS en el HTML</li>
-                    <li>Hay un error en el renderizado de Flask</li>
-                </ul>
-                <p>Solución:</p>
-                <ol>
-                    <li>Verifica que el bloque de FLASK_VARS esté en el <head> ANTES de cargar script.js</li>
-                    <li>Revisa que en index.html tengas: <script>const FLASK_VARS = {...}</script></li>
-                </ol>
-            </div>
-        `;
+        console.error("ERROR CRÍTICO: FLASK_VARS no está definido");
         return;
     }
     
     console.log("FLASK_VARS:", FLASK_VARS);
-    
-    // Elementos del DOM - Verificación robusta
-    tryBtn = document.getElementById('try-btn');
-    solveBtn = document.getElementById('solve-btn');
-    card1 = document.getElementById('card1');
-    card2 = document.getElementById('card2');
-    card1Name = document.getElementById('card1-name');
-    card2Name = document.getElementById('card2-name');
-    interpretationContent = document.getElementById('interpretation-content');
-    loading = document.getElementById('loading');
-    flipSound = document.getElementById('flip-sound');
-    chimeSound = document.getElementById('chime-sound');
-    
-    // Verificar que los elementos críticos existan
-    const missingElements = [];
-    if (!tryBtn) missingElements.push('try-btn');
-    if (!card1) missingElements.push('card1');
-    if (!card2) missingElements.push('card2');
-    if (!interpretationContent) missingElements.push('interpretation-content');
-    if (!loading) missingElements.push('loading');
-    
-    if (missingElements.length > 0) {
-        console.error("ERROR: Elementos del DOM no encontrados:", missingElements);
-        if (document.getElementById('interpretation-content')) {
-            document.getElementById('interpretation-content').innerHTML = `
-                <p class="error">
-                    <strong>Error crítico:</strong> Elementos HTML faltantes: ${missingElements.join(', ')}
-                </p>
-                <p class="error-details">
-                    Verifica que los IDs en index.html coincidan con los del JavaScript
-                </p>
-            `;
-        }
-        return;
-    }
-    
-    // Event listeners
-    console.log("Vinculando evento click a try-btn");
-    tryBtn.addEventListener('click', getRandomCards);
-    solveBtn.addEventListener('click', getInterpretation);
-    
-    // Configuración inicial
-    document.querySelector('#current-year').textContent = FLASK_VARS.year;
-    
-    // Elementos adicionales
-    const clearBtn = document.getElementById('clear-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const askBtn = document.getElementById('ask-btn');
-    const questionArea = document.getElementById('question-area');
-    const questionInput = document.getElementById('question-input');
-    const submitQuestion = document.getElementById('submit-question');
-    const cancelQuestion = document.getElementById('cancel-question');
-    const settingsMenu = document.getElementById('settings-menu');
-    
-    // Event listeners adicionales
-    clearBtn.addEventListener('click', clearAll);
-    settingsBtn.addEventListener('click', toggleSettingsMenu);
-    askBtn.addEventListener('click', toggleQuestionArea);
-    submitQuestion.addEventListener('click', submitQuestionHandler);
-    cancelQuestion.addEventListener('click', () => {
-        questionArea.style.display = 'none';
-        questionInput.value = currentQuestion;
-    });
-    
-    // Agregar evento para la tecla Enter en el input de pregunta
-    questionInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault(); // Prevenir el comportamiento por defecto
-            submitQuestionHandler();
-        }
-    });
-    
-    // Cerrar menús al hacer clic fuera
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.settings-menu') && !e.target.matches('#settings-btn')) {
-            settingsMenu.style.display = 'none';
-        }
-        if (!e.target.closest('.question-area') && !e.target.matches('#ask-btn')) {
-            if (questionArea.style.display === 'block') {
-                questionArea.style.display = 'none';
-                questionInput.value = currentQuestion;
+
+
+    // PARA AGREGAR - Capturar tecla Enter en el input de pregunta
+    document.addEventListener('keydown', function(e) {
+        if (e.target.id === 'question-input' && e.key === 'Enter') {
+            e.preventDefault();
+            const questionInput = document.getElementById('question-input');
+            currentQuestion = questionInput.value.trim();
+            const questionArea = document.getElementById('question-area');
+            questionArea.style.display = 'none';
+            const interpretationContent = document.getElementById('interpretation-content');
+            if (currentQuestion) {
+                interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${currentQuestion}</p>`;
+            } else {
+                interpretationContent.innerHTML = '<p>¿Qué pregunta tienes para las cartas del destino?</p>';
             }
         }
     });
+
+
+
     
-    // Manejar selección de estilo
-    document.querySelectorAll('.settings-option').forEach(option => {
-        option.addEventListener('click', () => {
-            selectedStyle = option.dataset.style;
-            settingsMenu.style.display = 'none';
-            document.getElementById('style-label').textContent = `Estilo: ${option.textContent}`;
-            
-            // Cambiar el color de fondo según el estilo seleccionado
-            changeBackgroundColor(selectedStyle);
+    // Configurar eventos inmediatos para la interfaz principal
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'settings-btn') {
+            const settingsMenu = document.getElementById('settings-menu');
+            settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+        }
+        if (e.target.id === 'ask-btn') {
+            const questionArea = document.getElementById('question-area');
+            questionArea.style.display = 'block';
+            document.getElementById('question-input').focus();
+        }
+
+
+
+
+
+
+
+
+
+        if (e.target.id === 'submit-question') {
+            const questionInput = document.getElementById('question-input');
+            currentQuestion = questionInput.value.trim();
+            const questionArea = document.getElementById('question-area');
+            questionArea.style.display = 'none';
+            const interpretationContent = document.getElementById('interpretation-content');
+            if (currentQuestion) {
+                interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${currentQuestion}</p>`;
+            } else {
+                interpretationContent.innerHTML = '<p>¿Qué pregunta tienes para las cartas del destino?</p>';
+            }
+        }
+
+
+
+
+        if (e.target.id === 'cancel-question') {
+            const questionArea = document.getElementById('question-area');
+            questionArea.style.display = 'none';
+            const questionInput = document.getElementById('question-input');
+            questionInput.value = currentQuestion;
+        }
+
+
+
+    });
+
+
+    
+
+
+
+
+
+
+
+
+    // Elementos de la pantalla de bienvenida
+    const blackScreen = document.getElementById('black-screen');
+    const mainContent = document.getElementById('main-content');
+    const welcomeQuestionInput = document.getElementById('welcome-question-input');
+    const welcomeSubmitBtn = document.getElementById('welcome-submit-btn');
+    const skipWelcome = document.getElementById('skip-welcome');
+    
+    console.log("Elementos de bienvenida encontrados:", {
+        blackScreen: !!blackScreen,
+        mainContent: !!mainContent,
+        welcomeQuestionInput: !!welcomeQuestionInput,
+        welcomeSubmitBtn: !!welcomeSubmitBtn,
+        skipWelcome: !!skipWelcome
+    });
+    
+    // Evento para la pantalla de bienvenida
+    if (welcomeQuestionInput && welcomeSubmitBtn) {
+        welcomeQuestionInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                submitWelcomeQuestion();
+            }
         });
-    });
-    
-    // Inicializar sonidos inmediatamente después de la carga del DOM
-    initializeSounds();
-    
-    function initializeSounds() {
-        // Cargar los sonidos inmediatamente
-        if (flipSound) {
-            flipSound.load();
-        }
-        if (chimeSound) {
-            chimeSound.load();
-        }
         
-        // Intentar pre-reproducir un sonido silencioso para desbloquear la API de audio
-        setTimeout(() => {
-            if (flipSound) {
-                flipSound.volume = 0;
-                flipSound.play().then(() => {
-                    flipSound.pause();
-                    flipSound.currentTime = 0;
-                    soundEnabled = true;
-                    console.log("Sonidos desbloqueados para primera reproducción");
-                }).catch(e => {
-                    console.log("Sonidos aún no desbloqueados, se habilitarán en el primer clic");
-                    // El sonido se habilitará en el primer clic real
-                });
+        welcomeSubmitBtn.addEventListener('click', submitWelcomeQuestion);
+        skipWelcome.addEventListener('click', () => {
+            showMainContent();
+        });
+    }
+    
+    // Mensaje de éxito
+    console.log("✅ Aplicación Tarot inicializada correctamente");
+    
+    function submitWelcomeQuestion() {
+        const question = welcomeQuestionInput.value.trim();
+        if (question) {
+            currentQuestion = question;
+            // Mostrar la pregunta en el área de interpretación
+            if (interpretationContent) {
+                interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${question}</p>`;
             }
-        }, 100);
+            // Transición a la interfaz principal
+            showMainContent();
+            // Automáticamente sacar las cartas después de un breve momento
+            setTimeout(() => {
+                if (tryBtn) {
+                    tryBtn.click();
+                }
+            }, 300);
+        }
     }
     
-    function changeBackgroundColor(style) {
-        const color = styleColors[style] || styleColors['coaching'];
-        document.body.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
-        
-        // Opcional: También puedes cambiar el color de otros elementos
-        const container = document.querySelector('.container');
-        if (container) {
-            container.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
+    function showMainContent() {
+        console.log("Mostrando contenido principal");
+        // Ocultar pantalla de bienvenida
+        if (blackScreen) {
+            blackScreen.style.display = 'none';
         }
+        // Mostrar interfaz principal
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+        // Asegurar que el estilo por defecto se aplique
+        changeBackgroundColor('coaching');
         
-        console.log(`Color de fondo cambiado a: ${color} para el estilo: ${style}`);
+        // Configurar elementos del contenido principal DESPUÉS de mostrarlo
+        setupMainContentEvents();
+
+
+
+
     }
+    
+    function setupMainContentEvents() {
+        // Elementos del DOM - Verificación robusta
+        tryBtn = document.getElementById('try-btn');
+        solveBtn = document.getElementById('solve-btn');
+        card1 = document.getElementById('card1');
+        card2 = document.getElementById('card2');
+        card1Name = document.getElementById('card1-name');
+        card2Name = document.getElementById('card2-name');
+        interpretationContent = document.getElementById('interpretation-content');
+        loading = document.getElementById('loading');
+        flipSound = document.getElementById('flip-sound');
+        chimeSound = document.getElementById('chime-sound');
+        
+        // Event listeners para el contenido principal
+        if (tryBtn) tryBtn.addEventListener('click', getRandomCards);
+        if (solveBtn) solveBtn.addEventListener('click', getInterpretation);
+        
+        // Elementos adicionales
+        const clearBtn = document.getElementById('clear-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const askBtn = document.getElementById('ask-btn');
+        const questionArea = document.getElementById('question-area');
+        const questionInput = document.getElementById('question-input');
+        const submitQuestion = document.getElementById('submit-question');
+        const cancelQuestion = document.getElementById('cancel-question');
+        const settingsMenu = document.getElementById('settings-menu');
+        
+        // Event listeners adicionales
+        clearBtn?.addEventListener('click', clearAll);
+  
+        
+        // Agregar evento para la tecla Enter en el input de pregunta
+        questionInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevenir el comportamiento por defecto
+                submitQuestionHandler();
+            }
+        });
+
+
+
+
+       
+        
+        // Cerrar menús al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.settings-menu') && !e.target.matches('#settings-btn')) {
+                settingsMenu.style.display = 'none';
+            }
+            if (!e.target.closest('.question-area') && !e.target.matches('#ask-btn')) {
+                if (questionArea.style.display === 'block') {
+                    questionArea.style.display = 'none';
+                    questionInput.value = currentQuestion;
+                }
+            }
+        });
+        
+
+
+
+
+
+
+
+
+        // Manejar selección de estilo
+        document.querySelectorAll('.settings-option').forEach(option => {
+            option.addEventListener('click', () => {
+                selectedStyle = option.dataset.style;
+                settingsMenu.style.display = 'none';
+                document.getElementById('style-label').textContent = `Estilo: ${option.textContent}`;
+                
+                // Cambiar el color de fondo según el estilo seleccionado
+                changeBackgroundColor(selectedStyle);
+            });
+        });
+        
+        // Configuración inicial
+        document.querySelector('#current-year').textContent = FLASK_VARS.year;
+        
+        console.log("✅ Eventos del contenido principal configurados");
+
+
+
+    }
+    
+    // Funciones completas del script...
     
     // Función principal - ACTUALIZADA para que sonido y cartas ocurran simultáneamente
     function getRandomCards() {
@@ -425,6 +514,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    function changeBackgroundColor(style) {
+        const color = styleColors[style] || styleColors['coaching'];
+        document.body.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
+        
+        // Opcional: También puedes cambiar el color de otros elementos
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.background = `linear-gradient(135deg, ${color} 0%, #14213d 100%)`;
+        }
+        
+        console.log(`Color de fondo cambiado a: ${color} para el estilo: ${style}`);
+    }
+    
     function playSound(soundElement, volume = 1.0, onSuccess = () => {}) {
         if (!soundElement) {
             console.log("Sonido no disponible");
@@ -460,6 +562,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Mensaje de éxito
-    console.log("✅ Aplicación Tarot inicializada correctamente");
+    // Inicializar sonidos inmediatamente
+    initializeSounds();
+    
+    function initializeSounds() {
+        // Cargar los sonidos inmediatamente
+        if (flipSound) {
+            flipSound.load();
+        }
+        if (chimeSound) {
+            chimeSound.load();
+        }
+        
+        // Intentar pre-reproducir un sonido silencioso para desbloquear la API de audio
+        setTimeout(() => {
+            if (flipSound) {
+                flipSound.volume = 0;
+                flipSound.play().then(() => {
+                    flipSound.pause();
+                    flipSound.currentTime = 0;
+                    soundEnabled = true;
+                    console.log("Sonidos desbloqueados para primera reproducción");
+                }).catch(e => {
+                    console.log("Sonidos aún no desbloqueados, se habilitarán en el primer clic");
+                });
+            }
+        }, 100);
+    }
+
 });
