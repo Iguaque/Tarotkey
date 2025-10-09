@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarot Reader by Bertha S.  1.22</title>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ (range(1000)|random) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script>
         // VARIABLES DE FLASK - ¡DEBEN ESTAR ANTES DE CUALQUIER OTRO JAVASCRIPT!
@@ -20,29 +20,39 @@
     </script>
 </head>
 <body>
-    <!-- Pantalla negra de entrada -->
-    <div id="black-screen" class="black-screen">
-        <div class="black-screen-content">
-            <!-- Carta translúcida central -->
-            <div id="welcome-card" class="welcome-card-image">
-                <img src="{{ url_for('static', filename='images/' + default_image) }}" alt="Carta de Tarot" class="card-image">
-            </div>
-            
-            <h1 id="welcome-title" class="welcome-title">Tarot Reader by Bertha S.</h1>
-            <p id="welcome-subtitle" class="welcome-subtitle">Descubre lo que las cartas tienen para ti</p>
-            
-            <div id="chat-input-container" class="chat-input-container">
-                <textarea 
-                    id="welcome-question-input" 
-                    class="chat-input" 
-                    placeholder="¿Qué pregunta tienes para las cartas del destino?..."
-                    rows="3"
-                ></textarea>
-                <button id="welcome-submit-btn" class="chat-submit-btn">Enviar</button>
-            </div>
-            
-            <div class="skip-option">
-                <span id="skip-welcome">Saltar introducción</span>
+    <!-- Video Introductorio -->
+    <div id="intro-video-container" class="intro-video-container">
+        <video id="intro-video" class="intro-video" autoplay muted playsinline>
+            <source src="{{ url_for('static', filename='videos/intro.mp4') }}" type="video/mp4">
+            Tu navegador no soporta video.
+        </video>
+        <div id="skip-intro" class="skip-intro">Saltar Intro</div>
+        <div id="video-loading" class="video-loading">Cargando...</div>
+    </div>
+
+    <!-- Pantalla de bienvenida (oculta inicialmente) -->
+    <div id="welcome-screen" class="welcome-screen" style="display: none;">
+        <div class="welcome-container">
+            <div class="welcome-card">
+                <div class="welcome-logo">
+                    <div class="eye-symbol"></div>
+                </div>
+                <h1 class="welcome-title">Tarot Reader by Bertha S.</h1>
+                <p class="welcome-subtitle">Descubre lo que las cartas tienen para ti</p>
+                
+                <div class="chat-input-container">
+                    <textarea 
+                        id="welcome-question-input" 
+                        class="chat-input" 
+                        placeholder="¿Qué pregunta tienes para las cartas del destino?..."
+                        rows="3"
+                    ></textarea>
+                    <button id="welcome-submit-btn" class="chat-submit-btn">Enviar</button>
+                </div>
+                
+                <div class="skip-option">
+                    <span id="skip-welcome">Saltar introducción</span>
+                </div>
             </div>
         </div>
     </div>
@@ -124,9 +134,8 @@
     
     <audio id="flip-sound" src="{{ url_for('static', filename='sounds/Card_flip.mp3') }}"></audio>
     <audio id="chime-sound" src="{{ url_for('static', filename='sounds/Magic_chimes.mp3') }}"></audio>
+    <audio id="intro-music" src="{{ url_for('static', filename='videos/intro_music.mp3') }}"></audio>
     
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
-
-  <!-- ultima version 3:27 -->
 </html>

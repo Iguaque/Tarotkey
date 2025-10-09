@@ -2,6 +2,7 @@ import os
 import random
 import json
 import requests
+import os
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from dotenv import load_dotenv
@@ -16,6 +17,18 @@ IMAGE_FOLDER = os.path.join(BASE_DIR, 'static', 'images', 'tarot')
 EXPLANATIONS_FILE = os.path.join(BASE_DIR, 'El Loco2.txt')
 CARD_NAMES_FILE = os.path.join(BASE_DIR, 'card_names.json')  # Nuevo archivo JSON
 DEFAULT_IMAGE = 'TarocchiBN2.jpg'
+VIDEO_FOLDER = os.path.join(BASE_DIR, 'static', 'videos')
+
+
+# Verificar que la carpeta de videos exista
+if not os.path.exists(VIDEO_FOLDER):
+    os.makedirs(VIDEO_FOLDER)
+    print(f"Creada carpeta de videos: {VIDEO_FOLDER}")
+
+
+
+
+
 
 # Cargar el diccionario de equivalencias desde el archivo JSON
 def load_card_names():

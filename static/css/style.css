@@ -518,3 +518,78 @@ footer {
         padding: 12px 15px;
     }
 }
+
+/* Video Introductorio */
+.intro-video-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 1s ease;
+}
+
+.intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.skip-intro {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Merriweather', serif;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+    z-index: 10001;
+}
+
+.skip-intro:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.video-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-family: 'Merriweather', serif;
+    font-size: 1.2rem;
+}
+
+/* Asegurar que otras pantallas estén ocultas inicialmente */
+.welcome-screen, .main-content {
+    display: none;
+}
+
+/* Responsive para video */
+@media (max-width: 768px) {
+    .skip-intro {
+        top: 10px;
+        right: 10px;
+        font-size: 0.8rem;
+        padding: 8px 12px;
+    }
+}
+
+/* Fondo de imagen para pantalla de bienvenida */
+.welcome-screen {
+    background-color: #0a0a1a !important; /* Fallback color */
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+}
