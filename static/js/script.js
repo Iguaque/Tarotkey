@@ -61,6 +61,26 @@ document.addEventListener('DOMContentLoaded', () => {
 // ⚙️ FUNCIONES DE CONFIGURACIÓN GLOBAL
 // ────────────────────────────────────────────────────────────────────────────────
 
+// ── Configurar eventos globales ────────────────────────────────────────────────
+function setupGlobalEventListeners() {
+    // Evento para tecla Enter en input de pregunta
+    document.addEventListener('keydown', function(e) {
+        if (e.target.id === 'question-input' && e.key === 'Enter') {
+            e.preventDefault();
+            handleQuestionSubmit();
+        }
+    });
+
+    // Eventos de clic globales
+    document.addEventListener('click', function(e) {
+        handleGlobalClickEvents(e);
+    });
+    
+    console.log("✅ Eventos globales configurados");
+}
+
+
+
 // ── Inicializar video introductorio ──────────────────────────────────────────────
 // ── Inicializar video introductorio ──────────────────────────────────────────────
 function initializeIntroVideo() {
@@ -249,11 +269,63 @@ function showWelcomeScreen() {
             welcomeQuestionInput.focus();
         }
     }, 1000);
+
+// Configurar eventos globales cuando se muestra la pantalla de bienvenida
+setupGlobalEventListeners();
+
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
 // 🎯 FUNCIONES DE CONTROL DE FLUJO GLOBAL
 // ────────────────────────────────────────────────────────────────────────────────
+
+
+// ── Manejador de eventos de clic globales ──────────────────────────────────────
+function handleGlobalClickEvents(e) {
+    // Botón Settings
+    if (e.target.id === 'settings-btn') {
+        const settingsMenu = document.getElementById('settings-menu');
+        settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+    }
+    
+    // Botón Ask me!
+    if (e.target.id === 'ask-btn') {
+        const questionArea = document.getElementById('question-area');
+        questionArea.style.display = 'block';
+        document.getElementById('question-input').focus();
+    }
+    
+    // Botón Submit pregunta
+    if (e.target.id === 'submit-question') {
+        handleQuestionSubmit();
+    }
+    
+    // Botón Cancel pregunta
+    if (e.target.id === 'cancel-question') {
+        const questionArea = document.getElementById('question-area');
+        questionArea.style.display = 'none';
+        const questionInput = document.getElementById('question-input');
+        questionInput.value = currentQuestion;
+    }
+}
+
+// ── Manejador de submit de pregunta ──────────────────────────────────────────────
+function handleQuestionSubmit() {
+    const questionInput = document.getElementById('question-input');
+    currentQuestion = questionInput.value.trim();
+    const questionArea = document.getElementById('question-area');
+    questionArea.style.display = 'none';
+    const interpretationContent = document.getElementById('interpretation-content');
+    if (currentQuestion) {
+        interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${currentQuestion}</p>`;
+    } else {
+        interpretationContent.innerHTML = '<p>¿Qué pregunta tienes para las cartas del destino?</p>';
+    }
+}
+
+
+
+
 
 // ── Procesar pregunta de bienvenida ───────────────────────────────────────────────
 function submitWelcomeQuestion() {
