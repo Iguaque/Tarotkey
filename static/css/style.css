@@ -600,7 +600,7 @@ footer {
 /* Contenedor posicionado absolutamente */
 .welcome-container {
     position: absolute;
-    left: 30%;              /* 25% desde el borde izquierdo */
+    left: 45%;              /* 25% desde el borde izquierdo */
     top: 50%;               /* 50% desde el borde superior */
     transform: translate(-50%, -50%); /* Centra el elemento respecto a su posición */
     width: 100%;
