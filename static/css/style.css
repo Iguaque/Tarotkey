@@ -592,4 +592,30 @@ footer {
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-attachment: fixed !important;
+    position: relative;
+    min-height: 100vh;
+    display: none; /* Se mostrará con JavaScript */
+}
+
+/* Contenedor posicionado absolutamente */
+.welcome-container {
+    position: absolute;
+    left: 30%;              /* 25% desde el borde izquierdo */
+    top: 50%;               /* 50% desde el borde superior */
+    transform: translate(-50%, -50%); /* Centra el elemento respecto a su posición */
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Tarjeta de bienvenida */
+.welcome-card {
+    background: rgba(26, 26, 46, 0.95);
+    border-radius: 15px;
+    padding: 40px 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(74, 35, 90, 0.3);
+    text-align: center;
+    backdrop-filter: blur(10px);
 }
