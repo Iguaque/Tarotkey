@@ -244,11 +244,15 @@ header h1 {
     background-color: var(--space-dark);
     border: 1px solid var(--space-purple);
     border-radius: 5px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.45);
+    z-index: 100000; /* muy por encima para evitar quedar detrás del layout */
     display: none;
-    min-width: 150px;
-    margin-top: 5px;
+    min-width: 160px;
+    margin-top: 6px;
+    /* Alineamos al borde izquierdo del contenedor relativo padre y lo colocamos justo debajo */
+    left: 0;
+    top: calc(100% + 6px);
+    padding: 6px 4px;
 }
 
 .settings-option {
@@ -259,6 +263,21 @@ header h1 {
 
 .settings-option:hover {
     background-color: var(--space-purple);
+}
+
+/* Mensaje temporal de confirmación */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    z-index: 200000;
+    font-weight: 700;
 }
 
 .loading {
@@ -365,6 +384,77 @@ footer {
     height: 100%;
     object-fit: contain;
     filter: grayscale(100%) brightness(0.8) contrast(1.2);
+}
+
+/* Estilos para botones en esquina superior derecha: login, logout, configuración */
+.top-right-controls {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 99999; /* asegurar que quede muy por encima del video y otras capas */
+}
+
+.top-btn {
+    background: rgba(74,35,90,0.95); /* similar a --space-purple */
+    color: var(--gold);
+    border: 1px solid rgba(249,231,159,0.12);
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.top-btn:hover { transform: translateY(-2px); }
+
+/* Botón con solo icono: rueda dentada */
+.gear-btn {
+    width: 38px;
+    height: 38px;
+    padding: 6px;
+    justify-content: center;
+}
+
+.gear-btn svg { color: var(--gold); }
+
+/* Asegurar que en pantallas pequeñas no se sobrepongan */
+@media (max-width: 600px) {
+    .top-right-controls { top: 8px; right: 8px; gap: 6px; }
+    .top-btn { padding: 6px 8px; font-size: 0.8rem; }
+}
+
+/* Avatar del usuario (botón) */
+.avatar-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.05));
+    border: 1px solid rgba(249,231,159,0.12);
+}
+
+.avatar-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.avatar-initials {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 0.9rem;
 }
 
 .welcome-title {
@@ -535,6 +625,12 @@ footer {
     transition: opacity 1s ease;
 }
 
+/* El botón de Google dentro de la pantalla de bienvenida debe quedar por encima del video */
+.social-login .google-login-btn {
+    position: relative;
+    z-index: 1000;
+}
+
 .intro-video {
     width: 100%;
     height: 100%;
@@ -618,4 +714,146 @@ footer {
     border: 1px solid rgba(74, 35, 90, 0.3);
     text-align: center;
     backdrop-filter: blur(10px);
+}
+
+.social-login {
+    margin-top: 30px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.divider::before {
+    margin-right: 10px;
+}
+
+.divider::after {
+    margin-left: 10px;
+}
+
+.google-login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: white;
+    color: #757575;
+    border: 1px solid #ddd;
+    padding: 12px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.google-login-btn:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background: #f8f8f8;
+}
+
+
+
+
+/* =========================
+   Top-right action buttons
+   =========================
+   Comentarios:
+   - Posicionamos los botones en la esquina superior derecha con position: fixed
+   - Usamos estilos simples y accesibles
+   - El botón de la rueda es un SVG y hereda color con currentColor
+*/
+.top-actions {
+    /* fixed para que siempre esté visible aunque el usuario haga scroll */
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 9999; /* sobreponerse al resto */
+    align-items: center;
+    pointer-events: auto;
+}
+
+/* estilo base para los botones */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1f2937; /* gris oscuro */
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    border: 1px solid rgba(31,41,55,0.06);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+/* hover/active feedback */
+.action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(31,41,55,0.12);
+}
+
+/* estilos específicos */
+.login-btn {
+    background: linear-gradient(180deg,#fff,#f3f4f6);
+    color: #0b5394;
+}
+
+.logout-btn {
+    background: linear-gradient(180deg,#fff,#fff5f5);
+    color: #9b1a1a;
+}
+
+/* boton rueda: solo ancho fijo, fondo transparente */
+.gear-btn {
+    padding: 6px;
+    width: 40px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.85);
+}
+
+/* SVG dentro del botón hereda color */
+.gear-btn svg {
+    color: #0b1220;
+}
+
+/* versión móvil: ajustar tamaños */
+@media (max-width: 600px) {
+    .top-actions {
+        top: 8px;
+        right: 8px;
+    }
+    .action-btn {
+        padding: 6px 8px;
+        font-size: 13px;
+    }
+    .gear-btn {
+        width: 36px;
+        height: 32px;
+    }
 }

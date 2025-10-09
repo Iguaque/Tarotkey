@@ -20,19 +20,45 @@
     </script>
 </head>
 <body>
-    <!-- Video Introductorio -->
-    <div id="intro-video-container" class="intro-video-container">
+    <!-- Controles en la esquina superior derecha: Avatar / Iniciar sesión / Terminar sesión / Configuración -->
+    <div class="top-right-controls" aria-hidden="false">
+        <!-- Avatar del usuario: se inserta aquí y se muestra si user.authenticated === true -->
+        <button id="avatar-btn" class="top-btn avatar-btn" title="Perfil" style="display:none;" aria-label="Perfil de usuario"></button>
+
+        <!-- Botón Iniciar sesión: redirige a la ruta de OAuth en el backend -->
+        <button id="login-btn" class="top-btn" title="Iniciar sesión con Google">Iniciar sesión</button>
+
+        <!-- Botón Terminar sesión: visible cuando el usuario está autenticado -->
+        <button id="logout-btn" class="top-btn" title="Terminar sesión" style="display:none;">Terminar sesión</button>
+
+        <!-- Botón Configuración: estilo rueda dentada. Lleva a /settings -->
+        <button id="config-btn" class="top-btn gear-btn" title="Configuración">
+            <!-- Inline SVG de rueda para evitar dependencias externas -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.27-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.5 2.1l.06.06c.45.45 1.07.67 1.71.56.56-.1 1.05-.46 1.31-.99L9.9 1.6A2 2 0 1 1 12 3.5v.09c0 .7.4 1.27 1 1.51.55.2 1.04.66 1.16 1.23.11.64.5 1.22 1.05 1.69l.06.05A2 2 0 1 1 19.4 6.1l-.06.06c-.45.45-.67 1.07-.56 1.71.1.56.46 1.05.99 1.31l1.22.61a2 2 0 0 1 0 3.53l-1.22.61c-.53.27-.9.75-.99 1.31z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- ========== SECCIÓN 1: VIDEO INTRO (full-screen) ========== -->
+    <section id="intro-section" class="section section-intro">
+        <!-- Video Introductorio -->
+        <div id="intro-video-container" class="intro-video-container">
         <video id="intro-video" class="intro-video" autoplay muted playsinline>
             <source src="{{ url_for('static', filename='videos/intro.mp4') }}" type="video/mp4">
             Tu navegador no soporta video.
         </video>
         <div id="skip-intro" class="skip-intro">Saltar Intro</div>
         <div id="video-loading" class="video-loading">Cargando...</div>
-    </div>
+        </div>
+    </section>
 
-    <!-- Pantalla de bienvenida (oculta inicialmente) -->
-    <div id="welcome-screen" class="welcome-screen" style="display: none;">
-        <div class="welcome-container">
+    <!-- ========== SECCIÓN 2: PANTALLA DE BIENVENIDA (titulo + caja de pregunta) ========== -->
+    <section id="welcome-section" class="section section-welcome">
+        <!-- Pantalla de bienvenida (oculta inicialmente) -->
+        <div id="welcome-screen" class="welcome-screen" style="display: none;">
+            <div class="welcome-container">
             <div class="welcome-card">
                 <div class="welcome-logo">
                     <div class="eye-symbol"></div>
@@ -49,19 +75,34 @@
                     ></textarea>
                     <button id="welcome-submit-btn" class="chat-submit-btn">Enviar</button>
                 </div>
-                
-                <div class="skip-option">
-                    <span id="skip-welcome">Saltar introducción</span>
+                <div class="social-login">
+                    <div class="divider">
+                        <span>o continuar con</span>
+                    </div>
+                    <a href="/login/google" class="google-login-btn">
+                        <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google logo" width="20" height="20">
+                        Continuar con Google
+                    </a>
                 </div>
+                <!-- skip-welcome eliminado: fuerza al usuario a usar el flujo de welcome/login -->
             </div>
         </div>
-    </div>
+            </div>
+        </div>
+    </section>
 
-    <!-- Contenido principal (oculto inicialmente) -->
-    <div id="main-content" class="main-content" style="display: none;">
-        <div class="container">
-            <header>
-                <h1>Tarot Reader by Bertha S.v. 1.22</h1>
+    <!-- ========== SECCIÓN 3: CONTENIDO PRINCIPAL (cartas, controles, interpretación) ========== -->
+    <section id="app-section" class="section section-app">
+        <!-- Contenido principal (oculto inicialmente) -->
+        <div id="main-content" class="main-content" style="display: none;">
+            <div class="container">
+                <header>
+                    <h1>Tarot de Bertha</h1>
+               
+
+
+
+
             </header>
             
             <main>
@@ -85,10 +126,7 @@
                     <button id="try-btn" class="btn">Try</button>
                     <button id="solve-btn" class="btn" disabled>Solve</button>
                     <button id="clear-btn" class="btn">Clear</button>
-                    <div class="settings-container">
-                        <button id="settings-btn" class="btn">Settings</button>
-                        <span id="style-label">Estilo: Coaching</span>
-                    </div>
+                    <span id="style-label">Estilo: Coaching</span>
                     <button id="ask-btn" class="btn">Ask me!</button>
                 </div>
                 
@@ -100,13 +138,7 @@
                     </div>
                 </div>
                 
-                <div class="settings-menu" id="settings-menu" style="display: none;">
-                    <div class="settings-option" data-style="profesor">Profesor</div>
-                    <div class="settings-option" data-style="coaching">Coaching</div>
-                    <div class="settings-option" data-style="nigromante">Nigromante</div>
-                    <div class="settings-option" data-style="gitano">Gitano</div>
-                    <div class="settings-option" data-style="místico">Místico</div>
-                </div>
+                <!-- settings-menu movido a settings.html -->
                 
                 <div class="interpretation-area">
                     <div class="interpretation-header">✨ Mensaje del Universo ✨</div>
@@ -131,6 +163,7 @@
             </footer>
         </div>
     </div>
+    </section>
     
     <audio id="flip-sound" src="{{ url_for('static', filename='sounds/Card_flip.mp3') }}"></audio>
     <audio id="chime-sound" src="{{ url_for('static', filename='sounds/Magic_chimes.mp3') }}"></audio>

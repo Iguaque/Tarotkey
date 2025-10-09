@@ -11,6 +11,9 @@ let currentCards = null;
 let currentQuestion = '';
 let selectedStyle = 'coaching';
 let animationInProgress = false;
+// Flags globales para el flujo de autenticación y navegación
+let userIsAuthenticated = false;
+let skipToAppAfterIntro = false;
 
 // ── Audio ───────────────────────────────────────────────────────────────────────
 let soundEnabled = false;
@@ -39,23 +42,81 @@ const styleColors = {
 // ────────────────────────────────────────────────────────────────────────────────
 
 // ── Inicialización cuando el DOM esté listo ─────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("=== DOM Content Loaded - Iniciando ===");
-    
-    // Verificar que FLASK_VARS está definido
+function initApp() {
+    console.log("=== Inicializando aplicación (initApp) ===");
+
+    // Verificar que FLASK_VARS está definido - si no, la plantilla no cargó las variables
     if (typeof FLASK_VARS === 'undefined') {
-        console.error("ERROR CRÍTICO: FLASK_VARS no está definido");
-        return;
+        console.warn("FLASK_VARS no está definido en esta plantilla. Algunas funciones pueden no funcionar completamente.");
+    } else {
+        console.log("FLASK_VARS:", FLASK_VARS);
     }
-    
-    console.log("FLASK_VARS:", FLASK_VARS);
 
     // Inicializar elementos de video introductorio
     initializeIntroVideo();
-    
-    // ── Mensaje de éxito ──────────────────────────────────────────────────────────
+    // Inicializar controles de sesión y configuración en la esquina superior derecha
+    initializeSessionControls();
+    // Configurar eventos globales independientemente de si se muestra la pantalla de bienvenida
+    setupGlobalEventListeners();
+    // Inicializar Tarotista menú si estamos en la página de configuración
+    initializeTarotistaMenu();
+
+    // Al iniciar la app, leer la preferencia guardada del tarotista y aplicarla
+    try {
+        const saved = localStorage.getItem('selected_tarotista_style');
+        if (saved) {
+            // Mapeo simple (coincide con el mapa en initializeTarotistaMenu)
+            const map = { 'profesor':'professor', 'coaching':'coaching', 'nigromante':'nigromante', 'gitano':'gitano', 'místico':'místico' };
+            selectedStyle = map[saved] || saved;
+            changeBackgroundColor(selectedStyle);
+            // Actualizar etiqueta de estilo si está presente
+            const styleLabel = document.getElementById('style-label');
+            if (styleLabel) {
+                // usar la opción de texto del menú si está disponible
+                const opt = document.querySelector(`.settings-option[data-style="${saved}"]`);
+                styleLabel.textContent = `Estilo: ${opt ? opt.textContent : saved}`;
+            }
+        }
+    } catch (err) {
+        console.warn('No se pudo leer la preferencia guardada del tarotista:', err);
+    }
+
+    // Mensaje de éxito
     console.log("✅ Aplicación Tarot inicializada correctamente");
-});
+
+    // Si la URL contiene el hash #app, forzamos la vista de la aplicación
+    try {
+        if (window.location && window.location.hash && window.location.hash.toLowerCase().includes('#app')) {
+            console.log('Hash #app detectado: mostrando la aplicación directamente');
+            // Detener y ocultar el video introductorio si existe
+            try {
+                if (introVideo) {
+                    introVideo.pause();
+                    introVideo.currentTime = 0;
+                }
+                const introContainer = document.getElementById('intro-video-container');
+                if (introContainer) introContainer.style.display = 'none';
+            } catch (err) {
+                console.warn('No se pudo manipular el video intro:', err);
+            }
+
+            // Mostrar la app principal
+            skipToAppAfterIntro = true;
+            showMainContent();
+        }
+    } catch (err) {
+        console.error('Error comprobando hash de la URL:', err);
+    }
+}
+
+// Ejecutar initApp() ya sea inmediatamente (si el documento ya está listo)
+// o al evento DOMContentLoaded cuando todavía no se ha disparado.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    // Documento ya cargado: llamar inmediatamente
+    initApp();
+}
 
 // ────────────────────────────────────────────────────────────────────────────────
 // ⚙️ FUNCIONES DE CONFIGURACIÓN GLOBAL
@@ -77,6 +138,152 @@ function setupGlobalEventListeners() {
     });
     
     console.log("✅ Eventos globales configurados");
+}
+
+/*
+ * Inicializa los botones de sesión (login/logout) y configuración.
+ * - Consulta `/api/user` para saber si hay un usuario autenticado.
+ * - Muestra `login-btn` si no está autenticado.
+ * - Muestra `logout-btn` si está autenticado.
+ * - `config-btn` siempre visible y redirige a /settings.
+ */
+function initializeSessionControls() {
+    // Obtener referencias a los botones que agregamos en index.html
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const configBtn = document.getElementById('config-btn');
+
+    if (!loginBtn || !logoutBtn || !configBtn) {
+        console.warn('Controles de sesión no encontrados en el DOM');
+        return;
+    }
+
+    // Consultar el endpoint /api/user para obtener estado de autenticación
+    // Si el usuario ya está autenticado, saltamos la introducción y vamos directo al contenido principal
+    fetch('/api/user')
+        .then(resp => resp.json())
+        .then(data => {
+            // Si el usuario está autenticado, mostrar logout y ocultar login
+            if (data && data.authenticated) {
+                // Marcar que el usuario está autenticado (para controlar el flujo tras el video)
+                userIsAuthenticated = true;
+                // Indicamos que, tras el video, debemos ir directamente a la app en vez del welcome
+                skipToAppAfterIntro = true;
+                // Usuario autenticado: ocultar login, mostrar logout
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-flex';
+
+                // Mostrar avatar en la esquina: si tenemos picture la usamos, si no, mostramos inicial
+                const avatarBtn = document.getElementById('avatar-btn');
+                if (avatarBtn) {
+                    avatarBtn.style.display = 'inline-flex';
+                    // Limpiar contenido anterior
+                    avatarBtn.innerHTML = '';
+
+                    if (data.picture) {
+                        // Crear imagen circular con la URL proporcionada por Google
+                        const img = document.createElement('img');
+                        img.src = data.picture;
+                        img.alt = (data.name || data.email || 'Avatar');
+                        avatarBtn.appendChild(img);
+                    } else {
+                        // Si no hay picture, mostrar iniciales del nombre
+                        const initials = document.createElement('div');
+                        initials.className = 'avatar-initials';
+                        const name = data.name || data.email || 'U';
+                        const parts = name.trim().split(' ');
+                        let text = parts.length > 1 ? (parts[0][0] + parts[parts.length-1][0]) : name[0];
+                        text = text.toUpperCase();
+                        initials.textContent = text;
+                        avatarBtn.appendChild(initials);
+                    }
+
+                    // Añadir title con nombre para accesibilidad
+                    avatarBtn.title = data.name || data.email || 'Cuenta';
+                }
+
+                // Opcional: usar el nombre del usuario en el título del botón logout
+                logoutBtn.title = 'Terminar sesión (' + (data.name || data.email || 'Usuario') + ')';
+                
+                // Recuperar pregunta pendiente expuesta por /api/user (si existe)
+                if (data.pending_question) {
+                    currentQuestion = data.pending_question;
+                    skipToAppAfterIntro = true;
+                    // Consumir la pregunta para que no vuelva a aparecer en futuros /api/user
+                    fetch('/consume_pending_question', { method: 'POST', credentials: 'same-origin' })
+                        .then(() => { /* consumida */ })
+                        .catch(() => {});
+                }
+
+                // Si el backend reporta una preferencia de tarotista, aplicarla
+                if (data.tarotista_style) {
+                    try {
+                        // Mapeo para nombres internos si es necesario
+                        const map = { 'profesor':'professor', 'professor':'professor', 'nigromante':'nigromante', 'necro':'nigromante', 'gitano':'gitano', 'gypsy':'gitano', 'místico':'místico', 'mystic':'místico' };
+                        const serverStyle = data.tarotista_style;
+                        const mapped = map[serverStyle] || serverStyle;
+                        selectedStyle = mapped;
+                        changeBackgroundColor(selectedStyle);
+                        // actualizar etiqueta
+                        const styleLabel = document.getElementById('style-label');
+                        if (styleLabel) {
+                            // intentar buscar el texto de la opción
+                            const opt = document.querySelector(`.settings-option[data-style="${serverStyle}"]`);
+                            styleLabel.textContent = `Estilo: ${opt ? opt.textContent : serverStyle}`;
+                        }
+                    } catch (err) { console.warn('No se pudo aplicar tarotista del servidor:', err); }
+                }
+
+                // No forzamos ocultar el intro inmediatamente; dejamos que el video se reproduzca
+                // y la transición correspondiente (transitionFromIntroToWelcome) decidirá si mostrar
+                // el welcome o ir directamente a la app (ver dicha función).
+            } else {
+                // No autenticado: ocultar avatar y logout, mostrar login
+                const avatarBtn = document.getElementById('avatar-btn');
+                if (avatarBtn) {
+                    avatarBtn.style.display = 'none';
+                    avatarBtn.innerHTML = '';
+                }
+                loginBtn.style.display = 'inline-flex';
+                logoutBtn.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            console.error('Error consultando /api/user:', err);
+            // Fallback: mostrar login
+            loginBtn.style.display = 'inline-flex';
+            logoutBtn.style.display = 'none';
+        });
+
+    // Click en Iniciar sesión -> redirigir a la ruta del backend que inicia OAuth
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Redirigir a la ruta que construye la URL de Google OAuth en el servidor
+        window.location.href = '/login/google';
+    });
+
+    // Click en Terminar sesión -> redirigir a /logout para que el backend borre la sesión
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Redirigir a /logout (backend limpia la sesión y redirige a /)
+        window.location.href = '/logout';
+    });
+
+    // Click en Configuración -> navegar a la página de configuración
+    configBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Lleva a /settings donde actualmente mostraremos "en construcción"
+        window.location.href = '/settings';
+    });
+
+    // Click en Avatar -> navegar a /settings (perfil/configuración)
+    const avatarBtnGlobal = document.getElementById('avatar-btn');
+    if (avatarBtnGlobal) {
+        avatarBtnGlobal.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = '/settings';
+        });
+    }
 }
 
 
@@ -210,8 +417,13 @@ function transitionFromIntroToWelcome() {
     // Después del fade out, mostrar pantalla de bienvenida
     setTimeout(() => {
         introContainer.style.display = 'none';
-        showWelcomeScreen();
-    }, 000); // Duración del fade out
+        // Si el flujo indica saltar al app (usuario autenticado), mostrar la app directamente
+        if (skipToAppAfterIntro) {
+            showMainContent();
+        } else {
+            showWelcomeScreen();
+        }
+    }, 1); // Duración del fade out
 }
 
 // ── Mostrar pantalla de bienvenida ───────────────────────────────────────────────
@@ -270,8 +482,7 @@ function showWelcomeScreen() {
         }
     }, 1000);
 
-// Configurar eventos globales cuando se muestra la pantalla de bienvenida
-setupGlobalEventListeners();
+// (Antes se configuraban los eventos aquí; ahora se registran siempre al cargar el DOM)
 
 }
 
@@ -282,10 +493,12 @@ setupGlobalEventListeners();
 
 // ── Manejador de eventos de clic globales ──────────────────────────────────────
 function handleGlobalClickEvents(e) {
-    // Botón Settings
+    // Botón Settings (protegido): la UI de settings pudo haber sido movida.
     if (e.target.id === 'settings-btn') {
         const settingsMenu = document.getElementById('settings-menu');
-        settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+        if (settingsMenu) {
+            settingsMenu.style.display = settingsMenu.style.display === 'block' ? 'none' : 'block';
+        }
     }
     
     // Botón Ask me!
@@ -307,6 +520,114 @@ function handleGlobalClickEvents(e) {
         const questionInput = document.getElementById('question-input');
         questionInput.value = currentQuestion;
     }
+}
+
+// Inicializa la funcionalidad del botón "Tarotista" que vive únicamente en la
+// página de configuración (/settings). Es segura: si los elementos no existen,
+// no hace nada. Maneja abrir/cerrar el menú y seleccionar un estilo de lectura.
+function initializeTarotistaMenu() {
+    const btn = document.getElementById('tarotista-btn');
+    const menu = document.getElementById('tarotista-menu');
+    if (!btn || !menu) return; // no estamos en la página de settings
+
+    // Toggle del menú
+    // Marcar atributo aria para accesibilidad
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+
+    function toggleTarotistaMenu() {
+        const isOpen = (menu.style.display === 'block');
+        menu.style.display = isOpen ? 'none' : 'block';
+        btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleTarotistaMenu();
+    });
+
+    // Delegated fallback: si por alguna razón el click directo no llega al botón
+    // (por capas o superposiciones), permitimos que un click dentro del wrapper
+    // active el botón. Esto evita que el menú quede inaccesible.
+    const wrapper = btn.closest('.tarotista-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('click', (e) => {
+            // Si el click fue en el botón, ya está manejado; aquí cubrimos otros targets
+            if (e.target === btn || btn.contains(e.target)) return;
+            // Si se hizo click en el wrapper (no en el menú), abrimos el menú
+            const clickedMenu = e.target.closest('#tarotista-menu');
+            if (!clickedMenu) {
+                e.stopPropagation();
+                toggleTarotistaMenu();
+            }
+        });
+    }
+
+    // Mapa de nombres del menú a las llaves usadas por changeBackgroundColor
+    const tarotistaStyleMap = {
+        'profesor': 'professor', // corrección de idioma
+        'coaching': 'coaching',
+        'nigromante': 'nigromante',
+        'gitano': 'gitano',
+        'místico': 'místico'
+    };
+
+    // Selección de opción
+    menu.querySelectorAll('.settings-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            const selected = opt.getAttribute('data-style');
+
+            // Función que aplica el estilo en el cliente (UI) — llamada tras persistencia
+            function applySelection() {
+                try { localStorage.setItem('selected_tarotista_style', selected); } catch (err) { /* ignore */ }
+                const mapped = tarotistaStyleMap[selected] || selected;
+                selectedStyle = mapped;
+                changeBackgroundColor(selectedStyle);
+                const styleLabel = document.getElementById('style-label');
+                if (styleLabel) styleLabel.textContent = `Estilo: ${opt.textContent}`;
+                menu.querySelectorAll('.settings-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                menu.style.display = 'none';
+                const msg = document.createElement('div');
+                msg.className = 'toast';
+                msg.textContent = `Seleccionado: ${opt.textContent}`;
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 1800);
+            }
+
+            // Si el usuario está autenticado, persistir en el servidor primero
+            if (userIsAuthenticated) {
+                fetch('/save_tarotista_style', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ style: selected })
+                }).then(r => r.json())
+                .then(data => {
+                    if (data && data.ok) {
+                        applySelection();
+                    } else {
+                        console.warn('No se pudo guardar preferencia en servidor:', data.error);
+                        // fallback al cliente
+                        applySelection();
+                    }
+                }).catch(err => {
+                    console.error('Error guardando preferencia en servidor:', err);
+                    applySelection();
+                });
+            } else {
+                // No autenticado: persistencia local
+                applySelection();
+            }
+        });
+    });
+
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (menu.style.display === 'block' && !menu.contains(e.target) && e.target !== btn) {
+            menu.style.display = 'none';
+        }
+    });
 }
 
 // ── Manejador de submit de pregunta ──────────────────────────────────────────────
@@ -334,21 +655,44 @@ function submitWelcomeQuestion() {
     
     const question = welcomeQuestionInput.value.trim();
     if (question) {
-        currentQuestion = question;
-        // Mostrar la pregunta en el área de interpretación
-        const interpretationContent = document.getElementById('interpretation-content');
-        if (interpretationContent) {
-            interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${question}</p>`;
-        }
-        // Transición a la interfaz principal
-        showMainContent();
-        // Automáticamente sacar las cartas después de un breve momento
-        setTimeout(() => {
-            const tryBtn = document.getElementById('try-btn');
-            if (tryBtn) {
-                tryBtn.click();
+        // Si el usuario ya está autenticado, comportarse como antes
+        if (userIsAuthenticated) {
+            currentQuestion = question;
+            // Mostrar la pregunta en el área de interpretación
+            const interpretationContent = document.getElementById('interpretation-content');
+            if (interpretationContent) {
+                interpretationContent.innerHTML = `<p class="question-display">Pregunta: ${question}</p>`;
             }
-        }, 300);
+            // Transición a la interfaz principal
+            showMainContent();
+            // Automáticamente sacar las cartas después de un breve momento
+            setTimeout(() => {
+                const tryBtn = document.getElementById('try-btn');
+                if (tryBtn) {
+                    tryBtn.click();
+                }
+            }, 300);
+        } else {
+            // No autenticado: guardar la pregunta en el servidor y redirigir a login
+            fetch('/save_pending_question', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+                if (data && data.ok) {
+                    window.location.href = '/login/google';
+                } else {
+                    alert('No se pudo guardar la pregunta: ' + (data.error || 'Error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error guardando la pregunta pendiente:', err);
+                alert('Error conectando con el servidor. Intenta de nuevo.');
+            });
+        }
     }
 }
 
@@ -377,6 +721,18 @@ function showMainContent() {
     
     // Configurar elementos del contenido principal DESPUÉS de mostrarlo
     setupMainContentEvents();
+    // Si hay una pregunta almacenada (viene desde welcome antes del login), mostrarla
+    if (currentQuestion && currentQuestion.trim() !== '') {
+        const interpretationContentEl = document.getElementById('interpretation-content');
+        if (interpretationContentEl) {
+            interpretationContentEl.innerHTML = `<p class="question-display">Pregunta: ${currentQuestion}</p>`;
+        }
+        // Sacar cartas automáticamente
+        setTimeout(() => {
+            const tryBtn = document.getElementById('try-btn');
+            if (tryBtn) tryBtn.click();
+        }, 300);
+    }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -722,6 +1078,74 @@ function submitQuestionHandler() {
         }
     }
 }
+
+
+// ────────────────────────────────────────────────────────────────────────────────
+// 🔐 FUNCIONES DE AUTENTICACIÓN
+// ────────────────────────────────────────────────────────────────────────────────
+
+// ── Verificar estado de autenticación ──────────────────────────────────────────────
+function checkAuthStatus() {
+    console.log("Verificando estado de autenticación...");
+    
+    fetch('/api/user')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        })
+        .then(user => {
+            console.log("Estado de autenticación:", user);
+            
+            if (user.authenticated) {
+                // Usuario logueado - mostrar interfaz principal
+                showMainInterfaceForAuthenticatedUser(user);
+            } else {
+                // Usuario no logueado - mantener comportamiento actual
+                console.log("Usuario no autenticado, continuando flujo normal");
+            }
+        })
+        .catch(error => {
+            console.log("Error verificando autenticación:", error);
+            // Continuar con flujo normal si hay error
+        });
+}
+
+// ── Mostrar interfaz principal para usuarios logueados ──────────────────────────────
+function showMainInterfaceForAuthenticatedUser(userData) {
+    console.log("Mostrando interfaz para usuario autenticado:", userData);
+    
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const mainContent = document.getElementById('main-content');
+    
+    if (welcomeScreen) {
+        welcomeScreen.style.display = 'none';
+    }
+    
+    if (mainContent) {
+        mainContent.style.display = 'block';
+        // Personalizar título con nombre del usuario
+        const headerTitle = document.querySelector('header h1');
+        if (headerTitle && userData.name) {
+            headerTitle.textContent = `Tarot Reader by Bertha S. - ¡Hola, ${userData.name.split(' ')[0]}!`;
+        }
+        
+        // Configurar eventos principales
+        setupMainContentEvents();
+    }
+}
+
+// ── Llamar a la verificación de autenticación cuando el DOM esté listo ───────────────
+document.addEventListener('DOMContentLoaded', () => {
+    // ... tu código existente ...
+    
+    // Agregar esta línea al final de tu DOMContentLoaded existente:
+    checkAuthStatus(); // ✅ Verificar autenticación al cargar
+});
+
+
+
 
 // ────────────────────────────────────────────────────────────────────────────────
 // 🎵 FUNCIONES DE AUDIO

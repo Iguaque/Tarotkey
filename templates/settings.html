@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configuración</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- FLASK_VARS no inyectadas aquí para evitar errores de Jinja; el script maneja su ausencia -->
+</head>
+<body>
+    <div class="container" style="padding-top:60px;">
+        <header style="display:flex; justify-content:space-between; align-items:center;">
+            <h1>Configuración</h1>
+            <div>
+                <a href="/#app" class="btn">Volver</a>
+                {% if not user %}
+                    <a href="/login/google" class="btn">Iniciar sesión</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main>
+            <!-- Descripción breve y controles de Tarotista -->
+            <div style="margin-top:10px;">
+                <p>Elige el estilo del tarotista que deseas usar en las lecturas:</p>
+            </div>
+
+            <div style="margin-top:8px; display:flex; gap:12px; align-items:center;">
+                <div class="tarotista-wrapper" style="position:relative;">
+                    <button id="tarotista-btn" class="btn">Tarotista</button>
+                    <div id="tarotista-menu" class="settings-menu" style="display:none;">
+                    <div class="settings-option" data-style="profesor">Profesor</div>
+                    <div class="settings-option" data-style="coaching">Coaching</div>
+                    <div class="settings-option" data-style="nigromante">Nigromante</div>
+                    <div class="settings-option" data-style="gitano">Gitano</div>
+                    <div class="settings-option" data-style="místico">Místico</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

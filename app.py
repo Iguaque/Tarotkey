@@ -2,22 +2,217 @@ import os
 import random
 import json
 import requests
-import os
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for  # Agregar session, redirect, url_for
 from dotenv import load_dotenv
+
+#--- para OAuth ---
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+import secrets
+#---  %  ---
 
 load_dotenv()
 
 app = Flask(__name__)
 
 # Configuración de rutas
+app.secret_key = os.getenv('SECRET_KEY')  # This uses your SECRET_KEY from .env
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGE_FOLDER = os.path.join(BASE_DIR, 'static', 'images', 'tarot')
 EXPLANATIONS_FILE = os.path.join(BASE_DIR, 'El Loco2.txt')
 CARD_NAMES_FILE = os.path.join(BASE_DIR, 'card_names.json')  # Nuevo archivo JSON
 DEFAULT_IMAGE = 'TarocchiBN2.jpg'
 VIDEO_FOLDER = os.path.join(BASE_DIR, 'static', 'videos')
+
+
+
+# ====================================================================
+# OAUTH ROUTES - Add these AFTER your existing routes but BEFORE the if __name__ == '__main__': block
+# ====================================================================
+
+@app.route('/login/google')
+def login_google():
+    """Initiate Google OAuth flow"""
+    # Generate state parameter for security
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    
+    # Build authorization URL CORRECTLY
+    params = {
+        'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+        'redirect_uri': 'http://localhost:5000/auth/callback',
+        'response_type': 'code',
+        'scope': 'email profile',
+        'state': state
+    }
+    
+    # Construir URL correctamente
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?"
+    auth_url += "&".join([f"{key}={value}" for key, value in params.items()])
+    
+    print(f"Redirecting to: {auth_url}")  # Para debugging
+    return redirect(auth_url)
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    # Verify state parameter
+    if request.args.get('state') != session.get('oauth_state'):
+        return "Invalid state parameter", 400
+    
+    # Get authorization code
+    code = request.args.get('code')
+    if not code:
+        return "Missing authorization code", 400
+    
+    # Exchange code for tokens
+    token_url = "https://oauth2.googleapis.com/token"
+    token_data = {
+        'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+        'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+        "redirect_uri": "http://localhost:5000/auth/callback",
+        'grant_type': 'authorization_code',
+        'code': code
+    }
+    
+    # Get tokens
+    token_response = requests.post(token_url, data=token_data)
+    token_json = token_response.json()
+    
+    if 'error' in token_json:
+        return f"Error getting tokens: {token_json['error_description']}", 400
+    
+    # Verify ID token
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token_json['id_token'], 
+            google_requests.Request(), 
+            os.getenv('GOOGLE_CLIENT_ID')
+        )
+        
+        # Store user info in session
+        session['user'] = {
+            'id': idinfo['sub'],
+            'name': idinfo.get('name', ''),
+            'email': idinfo.get('email', ''),
+            'picture': idinfo.get('picture', '')
+        }
+        
+        return redirect('/')
+        
+    except ValueError as e:
+        return f"Invalid ID token: {str(e)}", 400
+
+@app.route('/logout')
+def logout():
+    """Logout user"""
+    session.pop('user', None)
+    session.pop('oauth_state', None)
+    return redirect('/')
+
+@app.route('/api/user')
+def api_user():
+    """API endpoint to check user authentication status"""
+    if 'user' in session:
+        resp = {
+            'authenticated': True,
+            'name': session['user'].get('name', ''),
+            'email': session['user'].get('email', ''),
+            'picture': session['user'].get('picture', '')
+        }
+        # incluir pregunta pendiente si existe en la sesión
+        if session.get('pending_question'):
+            resp['pending_question'] = session.get('pending_question')
+        # incluir preferencia del tarotista si existe
+        if session.get('tarotista_style'):
+            resp['tarotista_style'] = session.get('tarotista_style')
+        return jsonify(resp)
+    else:
+        # también devolver si hay pregunta pendiente incluso sin usuario
+        resp = {'authenticated': False}
+        if session.get('pending_question'):
+            resp['pending_question'] = session.get('pending_question')
+        # si existe preferencia guardada para la sesión (antes de login) devolverla también
+        if session.get('tarotista_style'):
+            resp['tarotista_style'] = session.get('tarotista_style')
+        return jsonify(resp)
+
+
+@app.route('/save_pending_question', methods=['POST'])
+def save_pending_question():
+    """Guardar pregunta pendiente en la sesión del usuario (antes de autenticación)."""
+    data = request.get_json(silent=True) or {}
+    question = (data.get('question') or '').strip()
+    if not question:
+        return jsonify({'ok': False, 'error': 'Pregunta vacía'}), 400
+    if len(question) > 2000:
+        return jsonify({'ok': False, 'error': 'Pregunta demasiado larga'}), 400
+
+    # Guardar en la sesión del navegador
+    session['pending_question'] = question
+    return jsonify({'ok': True})
+
+
+@app.route('/consume_pending_question', methods=['POST'])
+def consume_pending_question():
+    """Consumir (eliminar) la pregunta pendiente de la sesión."""
+    existed = 'pending_question' in session
+    session.pop('pending_question', None)
+    return jsonify({'ok': True, 'consumed': existed})
+
+
+@app.route('/save_tarotista_style', methods=['POST'])
+def save_tarotista_style():
+    """Guardar la preferencia del tarotista en la sesión del usuario (requiere sesión)."""
+    data = request.get_json(silent=True) or {}
+    style = (data.get('style') or '').strip()
+    if not style:
+        return jsonify({'ok': False, 'error': 'Estilo vacío'}), 400
+
+    # Validar que el estilo sea uno de los aceptados
+    allowed = {'profesor', 'coaching', 'nigromante', 'gitano', 'místico',
+               'professor', 'coaching', 'necro', 'gypsy', 'mystic'}
+    if style not in allowed:
+        # aceptamos también variantes y mapeamos si es necesario
+        # Para simplicidad guardamos la cadena tal cual si no es inválida
+        pass
+
+    # Guardar en sesión (si el usuario está autenticado lo asociamos a su sesión)
+    session['tarotista_style'] = style
+    return jsonify({'ok': True, 'style': style})
+
+
+@app.route('/settings')
+def settings():
+    """Página de configuración (por ahora: en construcción)"""
+    user_data = session.get('user', None)
+    # Pasar datos mínimos que usa el script principal para construir FLASK_VARS
+    default_image = DEFAULT_IMAGE
+    # Intentar obtener lista de archivos para el template (silencioso si falla)
+    try:
+        image_files = [f for f in os.listdir(IMAGE_FOLDER) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+    except Exception:
+        image_files = []
+
+    # all_card_names es la lista de nombres de cartas ya cargada globalmente
+    all_card_names = sorted({name[0] for name in CARD_NAMES.values()}) if CARD_NAMES else []
+
+    # Crear un dict simple con las variables que necesitará el JS
+    flask_vars = {
+        'staticUrl': url_for('static', filename=''),
+        'defaultImage': default_image,
+        'year': datetime.now().year,
+        'allCardNames': all_card_names,
+        'imageFiles': image_files
+    }
+
+    return render_template('settings.html', user=user_data, default_image=default_image,
+                           all_card_names=all_card_names, image_files=image_files,
+                           year=datetime.now().year, flask_vars=flask_vars)
+
+
+
 
 
 # Verificar que la carpeta de videos exista
@@ -64,6 +259,9 @@ def index():
         print(error_msg)
         return f"<h1 style='color:red;'>{error_msg}</h1><p>Verifica que tus imágenes están en la carpeta correcta</p>"
     
+
+    # Instead of returning template immediately, check if user is authenticated
+    default_image = DEFAULT_IMAGE
     image_files = [f for f in os.listdir(IMAGE_FOLDER) 
                   if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
     
@@ -75,10 +273,14 @@ def index():
     # Crear lista ordenada de nombres de cartas
     all_card_names = sorted({name[0] for name in CARD_NAMES.values()})
     
+    # Pass user session data to template if needed
+    user_data = session.get('user', None)
+
     return render_template('index.html', 
                           default_image=DEFAULT_IMAGE,
                           all_card_names=all_card_names,
-                          image_files=image_files)
+                          image_files=image_files,
+                          user=user_data)  # Pass user data to template
 
 @app.route('/get_random_cards', methods=['POST'])
 def get_random_cards():
