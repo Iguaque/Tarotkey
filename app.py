@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 import secrets
-#---  %  ---
+#---    ---
 
 load_dotenv()
 
