@@ -1,0 +1,30 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_IMAGE}', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE}']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE}'
+      - '--image'
+      - '${_IMAGE}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      # Uncomment and set if using Cloud SQL connection
+      # - '--add-cloudsql-instances'
+      # - '${_CLOUDSQL_CONNECTION_NAME}'
+
+substitutions:
+  _SERVICE: 'tarotkey-service'
+  _REGION: 'us-central1'
+  _IMAGE: 'gcr.io/$PROJECT_ID/tarotkey:$COMMIT_SHA'
+
+timeout: '900s'
