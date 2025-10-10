@@ -41,7 +41,7 @@ def login_google():
     # Build authorization URL CORRECTLY
     params = {
         'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-        'redirect_uri': 'http://localhost:5000/auth/callback',
+        'redirect_uri': 'https://tarotweb.onrender.com/auth/callback',
         'response_type': 'code',
         'scope': 'email profile',
         'state': state
@@ -71,7 +71,7 @@ def auth_callback():
     token_data = {
         'client_id': os.getenv('GOOGLE_CLIENT_ID'),
         'client_secret': os.getenv('GOOGLE_CLIENT_SECRET'),
-        "redirect_uri": "http://localhost:5000/auth/callback",
+        "redirect_uri": "https://tarotweb.onrender.com/auth/callback",
         'grant_type': 'authorization_code',
         'code': code
     }
